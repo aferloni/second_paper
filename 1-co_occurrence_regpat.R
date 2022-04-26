@@ -1,8 +1,14 @@
 
-#let's start by loading all NUTS + NO NUTS patents 
+#required packages: dplyr, matrix, igraph
 
-nuts<- read.table("/Users/aferloni/Documents/Geographic data/nuts_patents.txt", header= TRUE, sep= '|', stringsAsFactors = FALSE)
-no_nuts<- read.table("/Users/aferloni/Documents/Geographic data/NO-NUTS/no_nuts.txt", header= TRUE, sep= '|', stringsAsFactors = FALSE)
+#let's start by loading CPC codes + all NUTS + NO NUTS patents (you may want to unzip)
+
+CPC<- fread("/Users/aferloni/switchdrive/Andrea-Celine/These Andrea/Paper 2 - Urban relatedness/DATA/202202_CPC_Classes.7z", header= TRUE, sep= '|', stringsAsFactors = FALSE)
+nuts<- read.table("/Users/aferloni/switchdrive/Andrea-Celine/These Andrea/Paper 2 - Urban relatedness/DATA/nuts_patents.txt.zip", header= TRUE, sep= '|', stringsAsFactors = FALSE)
+no_nuts<- read.table("/Users/aferloni/switchdrive/Andrea-Celine/These Andrea/Paper 2 - Urban relatedness/DATA/no_nuts.txt.zip", header= TRUE, sep= '|', stringsAsFactors = FALSE)
+
+#nuts<- read.table("/Users/aferloni/Documents/Geographic data/nuts_patents.txt", header= TRUE, sep= '|', stringsAsFactors = FALSE)
+#no_nuts<- read.table("/Users/aferloni/Documents/Geographic data/NO-NUTS/no_nuts.txt", header= TRUE, sep= '|', stringsAsFactors = FALSE)
 
 all_patents<- rbind(nuts, no_nuts)
 

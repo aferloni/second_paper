@@ -129,7 +129,6 @@ Co_occurrence_4_mat<- as.matrix(M2) #first transform to regular matrix
 Co_occurrence_4_DF<- as.data.frame(Co_occurrence_4_mat)# then, back to DF
 
 #check which codes are not in previous periods. Also obtain node list
-
 names_4<- as.data.frame(row.names(Co_occurrence_4_DF))%>%
   rename(code=1)
 names_3<- as.data.frame(row.names(Co_occurrence_3_DF))%>%

@@ -4,11 +4,13 @@
 #let's start by loading CPC codes + all NUTS + NO NUTS patents (you may want to unzip)
 
 CPC<- fread("/Users/aferloni/switchdrive/Andrea-Celine/These Andrea/Paper 2 - Urban relatedness/DATA/202202_CPC_Classes.7z", header= TRUE, sep= '|', stringsAsFactors = FALSE)
+CPC<- fread("/Users/aferloni/Documents/Patent raw data/OECD/2022/Regpat/202202_CPC_Classes.txt", header= TRUE, sep= '|', stringsAsFactors = FALSE)
+
 nuts<- read.table("/Users/aferloni/switchdrive/Andrea-Celine/These Andrea/Paper 2 - Urban relatedness/DATA/nuts_patents.txt.zip", header= TRUE, sep= '|', stringsAsFactors = FALSE)
 no_nuts<- read.table("/Users/aferloni/switchdrive/Andrea-Celine/These Andrea/Paper 2 - Urban relatedness/DATA/no_nuts.txt.zip", header= TRUE, sep= '|', stringsAsFactors = FALSE)
 
-nuts<- read.table("/Users/aferloni/Documents/Geographic data/nuts_patents.txt", header= TRUE, sep= '|', stringsAsFactors = FALSE)
-no_nuts<- read.table("/Users/aferloni/Documents/Geographic data/NO-NUTS/no_nuts.txt", header= TRUE, sep= '|', stringsAsFactors = FALSE)
+nuts<- fread("/Users/aferloni/Documents/Geographic data/nuts_patents.txt", header= TRUE, sep= '|', stringsAsFactors = FALSE)
+no_nuts<- fread("/Users/aferloni/Documents/Geographic data/NO-NUTS/no_nuts.txt", header= TRUE, sep= '|', stringsAsFactors = FALSE)
 
 all_patents<- rbind(nuts, no_nuts)
 
@@ -27,7 +29,6 @@ all_patents<- all_patents%>%
 
 # assign patents to periods
 
-
 patents_1<- all_patents%>%
   filter(time==1)%>%
   distinct(appln_id)
@@ -44,54 +45,63 @@ patents_4<- all_patents%>%
 patents_1<- patents_1%>%
   inner_join(CPC, by="appln_id")%>%
   rename(group_id=CPC_Class)%>%
-  filter((!group_id %in% c("Y10S", "Y10T")))
+  filter((!group_id %in% c("Y10S", "Y10T")))%>%
+  distinct(appln_id, group_id)
 
 patents_2<- patents_2%>%
   inner_join(CPC, by="appln_id")%>%
   rename(group_id=CPC_Class)%>%
-  filter((!group_id %in% c("Y10S", "Y10T")))
+  filter((!group_id %in% c("Y10S", "Y10T")))%>%
+  distinct(appln_id, group_id)
 
 patents_3<- patents_3%>%
   inner_join(CPC, by="appln_id")%>%
   rename(group_id=CPC_Class)%>%
-  filter((!group_id %in% c("Y10S", "Y10T")))
+  filter((!group_id %in% c("Y10S", "Y10T")))%>%
+  distinct(appln_id, group_id)
 
 patents_4<- patents_4%>%
   inner_join(CPC, by="appln_id")%>%
   rename(group_id=CPC_Class)%>%
-  filter((!group_id %in% c("Y10S", "Y10T")))
-
+  filter((!group_id %in% c("Y10S", "Y10T")))%>%
+  distinct(appln_id, group_id)
 
 
 #this is the starting point, let's now continue by building a matrix
 ##-PERIOD 1
 
-Co_occurrence_1<- Matrix::crossprod(xtabs(~ appln_id + group_id, data=patents_1, sparse=F))
+Co_occurrence_1<- Matrix::crossprod(xtabs(~ appln_id + group_id, data=patents_1, sparse=T))
 
-###normalize matrix so that all values are comprised between 0 and 1
+###calculate cosine similarity
 
-Mcol<- colSums(Co_occurrence_1)
-Mrow<- rowSums(Co_occurrence_1)
+Mrow<- diag(Co_occurrence_1)
 
-M1<- Mrow %*% t(Mcol)
+M1<- Mrow %*% t(Mrow)
 M2<- Co_occurrence_1/sqrt(M1)
-diag(M2)<- 1
 
 Co_occurrence_1_mat<- as.matrix(M2) #first transform to regular matrix
 Co_occurrence_1_DF<- as.data.frame(Co_occurrence_1_mat)# then, back to DF
+
+prox_Jaccard <- as.matrix(Co_occurrence_1 / (matrix(rep(Mrow, length(Mrow)), length(Mrow), length(Mrow)) +
+                   matrix(rep(Mrow, length(Mrow)), length(Mrow), length(Mrow), byrow = TRUE) -
+                   Co_occurrence_1))
+
+plot(prox_Jaccard, Co_occurrence_1_mat)
+plot(jaccard, Co_occurrence_1_mat)
+
+jaccard<- as.matrix(1-vegdist(Co_occurrence_1, method = "jaccard"))#alterative method from package vegdist
+
 
 ##-PERIOD 2
 
 Co_occurrence_2<- Matrix::crossprod(xtabs(~ appln_id + group_id, data=patents_2, sparse=TRUE))
 
-###normalize matrix so that all values are comprised between 0 and 1
+###calculate cosine similarity
 
-Mcol<- colSums(Co_occurrence_2)
-Mrow<- rowSums(Co_occurrence_2)
+Mrow<- diag(Co_occurrence_2)
 
-M1<- Mrow %*% t(Mcol)
+M1<- Mrow %*% t(Mrow)
 M2<- Co_occurrence_2/sqrt(M1)
-diag(M2)<- 1
 
 Co_occurrence_2_mat<- as.matrix(M2) #first transform to regular matrix
 Co_occurrence_2_DF<- as.data.frame(Co_occurrence_2_mat)# then, back to DF
@@ -100,14 +110,12 @@ Co_occurrence_2_DF<- as.data.frame(Co_occurrence_2_mat)# then, back to DF
 
 Co_occurrence_3<- Matrix::crossprod(xtabs(~ appln_id + group_id, data=patents_3, sparse=TRUE))
 
-###normalize matrix so that all values are comprised between 0 and 1
+###calculate cosine similarity
 
-Mcol<- colSums(Co_occurrence_3)
-Mrow<- rowSums(Co_occurrence_3)
+Mrow<- diag(Co_occurrence_3)
 
-M1<- Mrow %*% t(Mcol)
+M1<- Mrow %*% t(Mrow)
 M2<- Co_occurrence_3/sqrt(M1)
-diag(M2)<- 1
 
 Co_occurrence_3_mat<- as.matrix(M2) #first transform to regular matrix
 Co_occurrence_3_DF<- as.data.frame(Co_occurrence_3_mat)# then, back to DF
@@ -116,14 +124,12 @@ Co_occurrence_3_DF<- as.data.frame(Co_occurrence_3_mat)# then, back to DF
 
 Co_occurrence_4<- Matrix::crossprod(xtabs(~ appln_id + group_id, data=patents_4, sparse=TRUE))
 
-###normalize matrix so that all values are comprised between 0 and 1
+###calculate cosine similarity
 
-Mcol<- colSums(Co_occurrence_4)
-Mrow<- rowSums(Co_occurrence_4)
+Mrow<- diag(Co_occurrence_4)
 
-M1<- Mrow %*% t(Mcol)
+M1<- Mrow %*% t(Mrow)
 M2<- Co_occurrence_4/sqrt(M1)
-diag(M2)<- 1
 
 Co_occurrence_4_mat<- as.matrix(M2) #first transform to regular matrix
 Co_occurrence_4_DF<- as.data.frame(Co_occurrence_4_mat)# then, back to DF
@@ -149,58 +155,89 @@ setdiff(names_1, names_2)# "G21J" code in 1 that is not in 2
 #---now let's transform each period into edgelist to generate the network
 ##en passant, remove 1 values (duplicated links) because network is undirected (AB=BA). I thought the weights = 0 had to be kept but in reality there's none..
 
+#network method: does not retain 0s
 #g1<- graph.adjacency(Co_occurrence_1_mat, mode="upper", weighted = T, diag=F) #not useful anymore because it doesn't extract the links with weight 0.
-
-period1_edgelist<- data.frame(source= rownames(Co_occurrence_1_DF)[col(Co_occurrence_1_DF)], target=colnames(Co_occurrence_1_DF)[row(Co_occurrence_1_DF)], weight= c(t(Co_occurrence_1_DF)))
-
-#this seems to work without the need to transform it to network and take edgelist. I HAVE NO IDEA WHY; BUT IT WORKS.
-
 #period1_edgelist<- get.data.frame(g1, what = "edges")
 
-
+#mysterious method: it works but don't know why
+period1_edgelist<- data.frame(source= rownames(Co_occurrence_1_DF)[col(Co_occurrence_1_DF)], target=colnames(Co_occurrence_1_DF)[row(Co_occurrence_1_DF)], weight= c(t(Co_occurrence_1_DF)))
 period1_edgelist<- period1_edgelist%>%
   filter(weight != 1)
 
-#links_1<- period1_edgelist[!duplicated(t(apply(period1_edgelist[c("from", "to")], 1, sort))), ] old version
+#melt method: safe and reliable
+period1_edgelist<- as.data.table(Co_occurrence_1_DF, keep.rownames="source")
+period1_edgelist<- melt.data.table(period1_edgelist, id.vars = "source", variable.factor = F, variable.name = "target", value.name = "weight")
+
+period1_edgelist<- as.data.frame(period1_edgelist)%>%
+  filter(weight!=1)
 links_1<- period1_edgelist[!duplicated(t(apply(period1_edgelist[c("source", "target")], 1, sort))), ] #this works, we get all links including those that are 0. 
 
-
 #2
-#g2<- graph.adjacency(Co_occurrence_2_mat, weighted = T)
-#period2_edgelist<- get.data.frame(g2, what = "edges")
+period2_edgelist<- as.data.table(Co_occurrence_2_DF, keep.rownames="source")
+period2_edgelist<- melt.data.table(period2_edgelist, id.vars = "source", variable.factor = F, variable.name = "target", value.name = "weight")
 
-period2_edgelist<- data.frame(source= rownames(Co_occurrence_2_DF)[col(Co_occurrence_2_DF)], target=colnames(Co_occurrence_2_DF)[row(Co_occurrence_2_DF)], weight= c(t(Co_occurrence_2_DF)))
-
-period2_edgelist<- period2_edgelist%>%
-  filter(weight != 1)
+period2_edgelist<- as.data.frame(period2_edgelist)%>%
+  filter(weight!=1)
 
 links_2<- period2_edgelist[!duplicated(t(apply(period2_edgelist[c("source", "target")], 1, sort))), ]
 
 #3
 
-#g3<- graph.adjacency(Co_occurrence_3_mat, weighted = T)
-#period3_edgelist<- get.data.frame(g3, what = "edges")
+period3_edgelist<- as.data.table(Co_occurrence_3_DF, keep.rownames="source")
+period3_edgelist<- melt.data.table(period3_edgelist, id.vars = "source", variable.factor = F, variable.name = "target", value.name = "weight")
 
-period3_edgelist<- data.frame(source= rownames(Co_occurrence_3_DF)[col(Co_occurrence_3_DF)], target=colnames(Co_occurrence_3_DF)[row(Co_occurrence_3_DF)], weight= c(t(Co_occurrence_3_DF)))
-
-period3_edgelist<- period3_edgelist%>%
-  filter(weight != 1)
+period3_edgelist<- as.data.frame(period3_edgelist)%>%
+  filter(weight!=1)
 
 links_3<- period3_edgelist[!duplicated(t(apply(period3_edgelist[c("source", "target")], 1, sort))), ]
 
 #4
+period4_edgelist<- as.data.table(Co_occurrence_4_DF, keep.rownames="source")
+period4_edgelist<- melt.data.table(period4_edgelist, id.vars = "source", variable.factor = F, variable.name = "target", value.name = "weight")
 
-#g4<- graph.adjacency(Co_occurrence_4_mat, weighted = T)
-#period4_edgelist<- get.data.frame(g4, what = "edges")
-
-period4_edgelist<- data.frame(source= rownames(Co_occurrence_4_DF)[col(Co_occurrence_4_DF)], target=colnames(Co_occurrence_4_DF)[row(Co_occurrence_4_DF)], weight= c(t(Co_occurrence_4_DF)))
-
-period4_edgelist<- period4_edgelist%>%
-  filter(weight != 1) 
+period4_edgelist<- as.data.frame(period4_edgelist)%>%
+  filter(weight!=1)
 
 links_4<- period4_edgelist[!duplicated(t(apply(period4_edgelist[c("source", "target")], 1, sort))), ]
 
 # write file to export to network
 write.csv(links_4, file= "/Users/aferloni/Documents/Thesis-second paper/2_methods/co_occurrence/OECD-regpat/period4_links.csv", quote =FALSE, row.names = FALSE)
 write.csv(names_4, file= "/Users/aferloni/Documents/Thesis-second paper/2_methods/co_occurrence/OECD-regpat/period4_nodes.csv", quote =FALSE, row.names = FALSE)
+
+
+##TOY------------------------------
+
+toy<- data.frame(patent_id=c("A", "B", "B", "B", "C", "C", "C", "D"), code=c(1, 1, 2, 3, 1, 3, 4, 3))
+toy_1<- Matrix::crossprod(xtabs(~ patent_id + code, data=toy, sparse=F))
+
+Mrow_toy_1<- diag(toy_1)
+
+M1_toy<- Mrow_toy_1 %*% t(Mrow_toy_1)
+M2<- toy_1/sqrt(M1_toy)
+
+Co_occurrence_toy<- as.matrix(M2) #first transform to regular matrix
+Co_occurrence_toy_DF<- as.data.frame(Co_occurrence_toy)# then, back to DF
+
+period1_toy<- data.frame(source= rownames(Co_occurrence_toy_DF)[col(Co_occurrence_toy_DF)], target=colnames(Co_occurrence_toy_DF)[row(Co_occurrence_toy_DF)], weight= c(t(Co_occurrence_toy_DF)))
+links_toy<- period1_toy[!duplicated(t(apply(period1_toy[c("source", "target")], 1, sort))), ] #this works, we get all links including those that are 0. 
+
+#this method works fine, whereas if we use the network it will likely drop the 0 case
+
+gtoy<- graph.adjacency(Co_occurrence_toy, weighted = T)
+toy_edgelist<- get.data.frame(gtoy, what = "edges")
+links_toy2<- toy_edgelist[!duplicated(t(apply(toy_edgelist[c("from", "to")], 1, sort))), ] #indeed, we have one less link with this method
+
+#now the question is why does this method fail when applied to an incidence matrix?
+#let's construct one. 
+
+#load igraph
+#method pass trhough network
+toy<- matrix(c(1, 3, 5, 3, 7, 8, 0, 1, 5, 3, 8, 5, 0, 1, 0, 0), nrow = 4, ncol = 4, byrow = T, dimnames = list(c("city1", "city2", "city3", "city4"), c("code1", "code2", "code3", "code4")))
+g1toy<- graph_from_incidence_matrix(toy, directed = F, weighted = T)
+period1_toy<- get.data.frame(g1toy, what = "edges") #as you can see, 0 are dropped, in the previous step
+
+#method direct from matrix
+toy<- as.data.frame(toy)
+period1_toy<- data.frame(source= rownames(toy)[col(toy)], target=colnames(toy)[row(toy)], weight= c(t(toy)))
+
 

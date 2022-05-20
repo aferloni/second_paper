@@ -4,8 +4,10 @@
 #files are zipped (unzip?)
 
 CPC<- fread("/Users/aferloni/switchdrive/Andrea-Celine/These Andrea/Paper 2 - Urban relatedness/DATA/202202_CPC_Classes.7z", header= TRUE, sep= '|', stringsAsFactors = FALSE)
+CPC<- fread("/Users/aferloni/Documents/Patent raw data/OECD/2022/Regpat/202202_CPC_Classes.txt", header= TRUE, sep= '|', stringsAsFactors = FALSE)
 
 nuts<- read.table(unzip("/Users/aferloni/switchdrive/Andrea-Celine/These Andrea/Paper 2 - Urban relatedness/DATA/nuts_patents.txt.zip"), header= TRUE, sep= '|', stringsAsFactors = FALSE)
+nuts<- fread("/Users/aferloni/Documents/Geographic data/nuts_patents.txt", header= TRUE, sep= '|', stringsAsFactors = FALSE)
 
 
 #-------MATCH LURs TO CPC codes
@@ -24,7 +26,6 @@ CPC_nuts<- nuts%>%
 CPC_nuts<- CPC_nuts%>%
   filter(!CPC_Class %in% c("Y10S", "Y10T")) #I exclude these two codes because they are just tags of former USPC classifications, so they include many different technologies AND are too big.
 
-
 CPC_nuts<- CPC_nuts%>%
   mutate(time=case_when(
     year < 1980 ~0,
@@ -35,10 +36,26 @@ CPC_nuts<- CPC_nuts%>%
   ))
 
 city_tech_time<-  CPC_nuts%>% 
-  group_by(lur, time, CPC_Class)%>%
+  group_by(lur, time, group_id=CPC_Class)%>%
   summarise(count=n())%>%
   arrange(desc(count))%>%
   ungroup()
+
+##---new formula by Mehdi (for all results see 2_regpat_nuts_nonuts)-----
+
+prox_cos_1 <- xtabs(count ~ lur + group_id, data = filter(city_tech_time, time == 1))
+prox_cos_1 <- crossprod(prox_cos_1) / sqrt(colSums(prox_cos_1^2) %*% t(colSums(prox_cos_1^2)))
+
+prox_cos_2 <- xtabs(count ~ lur + group_id, data = filter(city_tech_time, time == 2))
+prox_cos_2 <- crossprod(prox_cos_2) / sqrt(colSums(prox_cos_2^2) %*% t(colSums(prox_cos_2^2)))
+
+prox_cos_3 <- xtabs(count ~ lur + group_id, data = filter(city_tech_time, time == 3))
+prox_cos_3 <- crossprod(prox_cos_3) / sqrt(colSums(prox_cos_3^2) %*% t(colSums(prox_cos_3^2)))
+
+prox_cos_4 <- xtabs(count ~ lur + group_id, data = filter(city_tech_time, time == 4))
+prox_cos_4 <- crossprod(prox_cos_4) / sqrt(colSums(prox_cos_4^2) %*% t(colSums(prox_cos_4^2)))
+
+#---current method to calculate specializations (RTA). File to check: lur_data_all_function------
 
 alltechs_city_time<- city_tech_time%>%
   group_by(lur, time)%>%
@@ -98,7 +115,7 @@ size_all<- alltechs_city_time%>%
   ungroup()
 
 #after calculating all variables, proceed to multiple joins to have all data in the same place:
-#calculate COUNT: site activity/city, ACROSS: site activity/all cities, SUM_LUR: each city/all activities, ALL: all activities/all cities
+#calculate COUNT: size activity/city, ACROSS: size activity/all cities, SUM_LUR: each city/all activities, ALL: all activities/all cities
 lur_data_all<- city_tech_time%>%
   inner_join(alltechs_city_time, by=c("lur","time"))%>%
   inner_join(tech_across_cities, by=c("time", "group_id"))%>%
@@ -111,6 +128,7 @@ lur_data_all_function<- lur_data_all%>%
   mutate(difference=var1-var2)%>%
   mutate(RTA=var1/var2)
 
+#-[OLD METHOD] create all combinations betwen codes, calculate relatedness and put all data together-----
 #create four time periods
 
 lur_data_all_function$across<- as.numeric(lur_data_all_function$across)
